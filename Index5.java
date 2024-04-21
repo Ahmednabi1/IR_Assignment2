@@ -221,7 +221,8 @@ public class Index5 {
 
             if (words.length == 1) {
                 String singleWord = words[0].toLowerCase();
-                if (index.containsKey(singleWord)) {
+
+                if (!stopWord(singleWord) && index.containsKey(singleWord)) {
                     Posting posting = index.get(singleWord).pList;
 
                     while (posting != null) {
@@ -229,10 +230,14 @@ public class Index5 {
                         posting = posting.next;
                     }
                 }
-            }
-            else {
+            } else {
                 for (int i = 0; i < words.length - 1; i++) {
-                    String biWord = words[i].toLowerCase() + "_" + words[i + 1].toLowerCase();
+                    String word1 = words[i].toLowerCase();
+                    String word2 = words[i + 1].toLowerCase();
+                    if (stopWord(word1) || stopWord(word2)) {
+                        continue;
+                    }
+                    String biWord = word1 + "_" + word2;
 
                     if (index.containsKey(biWord)) {
                         Posting posting = index.get(biWord).pList;
@@ -244,14 +249,12 @@ public class Index5 {
                     }
                 }
             }
-        }
-        else {
-            // If the phrase is enclosed in quotes then remove the quotes
+        } else {
+            // If the phrase is enclosed in quotes, remove the quotes
             phrase = phrase.substring(1, phrase.length() - 1);
 
             String[] words = phrase.split("\\s+");
 
-            // Check if any of the words contain underscores
             boolean containsUnderscore = false;
             for (String word : words) {
                 if (word.contains("_")) {
@@ -260,10 +263,13 @@ public class Index5 {
                 }
             }
 
-            // If any word contains underscores, search for bi-words
             if (containsUnderscore) {
                 for (int i = 0; i < words.length - 1; i++) {
                     String biWord = words[i].toLowerCase() + "_" + words[i + 1].toLowerCase();
+                    // Skip stop words
+                    if (stopWord(biWord)) {
+                        continue;
+                    }
 
                     if (index.containsKey(biWord)) {
                         Posting posting = index.get(biWord).pList;
@@ -274,10 +280,12 @@ public class Index5 {
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 for (String word : words) {
                     String singleWord = word.toLowerCase();
+                    if (stopWord(singleWord)) {
+                        continue;
+                    }
                     if (index.containsKey(singleWord)) {
                         Posting posting = index.get(singleWord).pList;
 
