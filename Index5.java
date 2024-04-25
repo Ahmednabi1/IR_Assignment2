@@ -4,9 +4,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
+
 
 public class Index5 {
 
@@ -30,7 +29,12 @@ public class Index5 {
             if (!firstItem) {
                 System.out.print(", ");
             }
-            System.out.print(p.docId);
+            System.out.print(p.docId + ": ");
+            for(int i = 0; i < p.positions.size(); i++)
+            {
+                System.out.println(p.positions.get(i) + ", ");
+            }
+
             p = p.next;
             firstItem = false;
         }
@@ -75,6 +79,29 @@ public class Index5 {
     }
 
     //---------------------------------------------
+    public void buildPositionalIndex(String[] files)
+    {
+        int fid = 0;
+        for (String fileName : files) {
+            try (BufferedReader file = new BufferedReader(new FileReader(fileName))) {
+                if (!sources.containsKey(fid)) {
+                    sources.put(fid, new SourceRecord(fid, fileName, fileName, ""));
+                }
+                String ln;
+                int flen = 0;
+                while ((ln = file.readLine()) != null) {
+                    flen = positionalIndex(ln , fid , flen);
+                }
+                sources.get(fid).length = flen;
+
+
+            } catch (IOException e) {
+                System.out.println("File " + fileName + " not found. Skip it");
+            }
+            fid++;
+        }
+        printDictionary();
+    }
     public int indexOneLine(String ln, int fid) {
         int flen = 0;
         String[] words = ln.split("\\W+"); // Split the line into words
@@ -96,6 +123,43 @@ public class Index5 {
         return flen;
     }
     //---------------------------------------------
+    public int positionalIndex(String ln , int fid , int flen)
+    {
+        String[] words = ln.split("\\W+"); // Split the line into words
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i].toLowerCase();
+            flen += 1;
+            if (stopWord(word)) {
+                continue; // Skip stop words
+            }
+            word = stemWord(word);
+            if (!index.containsKey(word)) {
+                index.put(word, new DictEntry());
+            }
+            if (!index.get(word).postingListContains(fid)) {
+                index.get(word).doc_freq += 1; //set doc freq to the number of doc that contain the term
+                if (index.get(word).pList == null) {
+                    index.get(word).pList = new Posting(fid);
+                    index.get(word).last = index.get(word).pList;
+
+                } else {
+                    index.get(word).last.next = new Posting(fid);
+                    index.get(word).last = index.get(word).last.next;
+                }
+                index.get(word).pList.positions.add(flen);
+            }
+            else{
+                index.get(word).last.dtf += 1;
+                index.get(word).pList.positions.add(flen);
+            }
+            index.get(word).term_freq += 1;
+        }
+        return flen;
+
+
+    }
+
+
     boolean stopWord(String word) {
         return word.equals("the") || word.equals("to") || word.equals("be") || word.equals("for") || word.equals("from") || word.equals("in")
                 || word.equals("a") || word.equals("into") || word.equals("by") || word.equals("or") || word.equals("and") || word.equals("that")
@@ -221,8 +285,7 @@ public class Index5 {
 
             if (words.length == 1) {
                 String singleWord = words[0].toLowerCase();
-
-                if (!stopWord(singleWord) && index.containsKey(singleWord)) {
+                if (index.containsKey(singleWord)) {
                     Posting posting = index.get(singleWord).pList;
 
                     while (posting != null) {
@@ -230,14 +293,10 @@ public class Index5 {
                         posting = posting.next;
                     }
                 }
-            } else {
+            }
+            else {
                 for (int i = 0; i < words.length - 1; i++) {
-                    String word1 = words[i].toLowerCase();
-                    String word2 = words[i + 1].toLowerCase();
-                    if (stopWord(word1) || stopWord(word2)) {
-                        continue;
-                    }
-                    String biWord = word1 + "_" + word2;
+                    String biWord = words[i].toLowerCase() + "_" + words[i + 1].toLowerCase();
 
                     if (index.containsKey(biWord)) {
                         Posting posting = index.get(biWord).pList;
@@ -249,12 +308,14 @@ public class Index5 {
                     }
                 }
             }
-        } else {
-            // If the phrase is enclosed in quotes, remove the quotes
+        }
+        else {
+            // If the phrase is enclosed in quotes then remove the quotes
             phrase = phrase.substring(1, phrase.length() - 1);
 
             String[] words = phrase.split("\\s+");
 
+            // Check if any of the words contain underscores
             boolean containsUnderscore = false;
             for (String word : words) {
                 if (word.contains("_")) {
@@ -263,13 +324,10 @@ public class Index5 {
                 }
             }
 
+            // If any word contains underscores, search for bi-words
             if (containsUnderscore) {
                 for (int i = 0; i < words.length - 1; i++) {
                     String biWord = words[i].toLowerCase() + "_" + words[i + 1].toLowerCase();
-                    // Skip stop words
-                    if (stopWord(biWord)) {
-                        continue;
-                    }
 
                     if (index.containsKey(biWord)) {
                         Posting posting = index.get(biWord).pList;
@@ -280,12 +338,10 @@ public class Index5 {
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 for (String word : words) {
                     String singleWord = word.toLowerCase();
-                    if (stopWord(singleWord)) {
-                        continue;
-                    }
                     if (index.containsKey(singleWord)) {
                         Posting posting = index.get(singleWord).pList;
 
@@ -303,6 +359,92 @@ public class Index5 {
     // works but
     // notice : if want to mix put " before the sentence so : automated “specific information” is == "automated "specific information""
     //=========================================
+
+
+    public ArrayList<Posting> positionalIntersect(Posting p1 , Posting p2)
+    {
+        ArrayList<Posting> answer = new ArrayList<Posting>();
+        Posting a = null;
+        while(p1 != null && p2 != null)
+        {
+            if(p1.docId == p2.docId)
+            {
+
+                var pp1 = p1.positions;
+                var pp2 = p2.positions;
+                while(pp1 != null && pp2 != null)
+                {
+                    for(int i = 0; i < pp1.size(); i++)
+                    {
+                        for(int j = 0; j < pp2.size(); j++)
+                        {
+                            if((pp1.get(i) - pp2.get(j)) == 1){  //[ {docId , [1 , 2] }  , { docId , [1,2] }]
+                                a.docId = p1.docId;
+                                a.positions.add(pp1.get(i));
+                                a.positions.add(pp2.get(j));
+                                answer.add(a);
+
+                            }
+                            else if(pp2.get(j) > pp1.get(i))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+            }
+            else if(p1.docId < p2.docId)
+            {
+                p1 = p1.next;
+            }
+            else{
+                p2 = p2.next;
+            }
+        }
+        return answer;
+    }
+
+
+    public String findWithPosition(String query)
+    {
+        String result = "";
+        String[] words = query.split("\\W+");
+        if(words.length == 1)
+        {
+            String singleWord = words[0].toLowerCase();
+            if(index.containsKey(singleWord)) {
+                Posting posting = index.get(singleWord).pList;
+
+                while (posting != null) {
+                    result += "\t" + posting.docId + " - " + sources.get(posting.docId).title + " - " + sources.get(posting.docId).length + "\n";
+                    posting = posting.next;
+                }
+            }
+        }
+        else{
+            ArrayList<ArrayList<Posting>> allPostings = new ArrayList<  >();
+            for(int i = 0; i < words.length; i++)
+            {
+                Posting p1 = index.get(words[i]).pList;
+                Posting p2 = index.get(words[i+1]).pList;
+                allPostings.add(positionalIntersect(p1, p2));
+            }
+            for(int i = 0; i < allPostings.size(); i++)
+            {
+                for(int j = 0; j < allPostings.get(i).size(); j++)
+                {
+                    result += "\t" + allPostings.get(i).get(j).docId + " - " + sources.get(allPostings.get(i).get(j).docId).title + " - " + sources.get(allPostings.get(i).get(j).docId).length + "\n";
+                }
+            }
+
+        }
+        return result;
+    }
+
+
+
+
     /**
      * Checks if the storage file exists.
      * @param storageName The name of the storage file.

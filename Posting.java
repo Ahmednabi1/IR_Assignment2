@@ -4,6 +4,10 @@
  */
 package invertedIndex;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
 /**
  *
  * @author ehab
@@ -13,6 +17,7 @@ public class Posting {
 
     public Posting next = null;
     int docId;
+    ArrayList<Integer> positions  = new ArrayList<Integer>();
     int dtf = 1;
 
     Posting(int id, int t) {
@@ -20,7 +25,7 @@ public class Posting {
         dtf=t;
     }
     
-    Posting(int id) {
+    Posting(int id ) {
         docId = id;
     }
 }
