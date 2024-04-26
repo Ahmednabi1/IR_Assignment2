@@ -116,21 +116,16 @@ public class Index5 {
 
                 var pp1 = p1.positions;
                 var pp2 = p2.positions;
-                while(pp1 != null && pp2 != null)
+                if(pp1 != null && pp2 != null)
                 {
-                    for(int i = 0; i < pp1.size(); i++)
-                    {
-                        for(int j = 0; j < pp2.size(); j++)
-                        {
-                            if((pp1.get(i) - pp2.get(j)) == 1){  //[ {docId , [1 , 2] }  , { docId , [1,2] }]
-                                a.docId = p1.docId;
-                                a.positions.add(pp1.get(i));
-                                a.positions.add(pp2.get(j));
+                    for (Integer first : pp1) {
+                        for (Integer second : pp2) {
+                            if ((second - first) == 1) {
+                                a = new Posting(p1.docId);
+                                a.positions.add(first);
+                                a.positions.add(second);
                                 answer.add(a);
-
-                            }
-                            else if(pp2.get(j) > pp1.get(i))
-                            {
+                            } else if (second > first) {
                                 break;
                             }
                         }
@@ -145,7 +140,11 @@ public class Index5 {
             else{
                 p2 = p2.next;
             }
+            p1 = p1.next;
+            p2 = p2.next;
+
         }
+
         return answer;
     }
 
@@ -168,11 +167,12 @@ public class Index5 {
         }
         else{
             ArrayList<ArrayList<Posting>> allPostings = new ArrayList<  >();
-            for(int i = 0; i < words.length; i++)
-            {
+            for(int i = 0; i < words.length - 1; i++) {
                 Posting p1 = index.get(words[i]).pList;
-                Posting p2 = index.get(words[i+1]).pList;
+                Posting p2 = index.get(words[i + 1]).pList;
+
                 allPostings.add(positionalIntersect(p1, p2));
+
             }
             for(int i = 0; i < allPostings.size(); i++)
             {
@@ -329,15 +329,17 @@ public class Index5 {
         String sTmp; // Temporary variable for string swapping
 
         // Continue sorting until the array is fully sorted
-        while (!sorted) {
-            sorted = true; // Assume array is sorted unless proven otherwise
-            for (int i = 0; i < words.length - 1; i++) {
-                int compare = words[i].compareTo(words[i + 1]); // Compare adjacent strings
-                if (compare > 0) { // If comparison indicates out-of-order, swap strings
-                    sTmp = words[i];
-                    words[i] = words[i + 1];
-                    words[i + 1] = sTmp;
-                    sorted = false; // Set sorted flag to false since swap occurred
+        if(words != null) {
+            while (!sorted) {
+                sorted = true; // Assume array is sorted unless proven otherwise
+                for (int i = 0; i < words.length - 1; i++) {
+                    int compare = words[i].compareTo(words[i + 1]); // Compare adjacent strings
+                    if (compare > 0) { // If comparison indicates out-of-order, swap strings
+                        sTmp = words[i];
+                        words[i] = words[i + 1];
+                        words[i + 1] = sTmp;
+                        sorted = false; // Set sorted flag to false since swap occurred
+                    }
                 }
             }
         }
@@ -458,7 +460,7 @@ public class Index5 {
      */
     public boolean storageFileExists(String storageName){
         // Create a new File object with the specified storage path and file name
-        java.io.File f = new java.io.File("D:/fcai/Third Year/Second Semester/Information Retrieval/Assignments/Assignment 2/ASS2/tmp11/rl/collection/"+storageName);
+        java.io.File f = new java.io.File("F:/College/3rd - 2nd term/IR/IR_Assignment2/collection/"+storageName);
         // Check if the file exists and is not a directory
         if (f.exists() && !f.isDirectory())
             return true; // Return true if the file exists
@@ -473,7 +475,7 @@ public class Index5 {
     public void createStore(String storageName) {
         try {
             // Create the full path to the storage file
-            String pathToStorage = "D:/fcai/Third Year/Second Semester/Information Retrieval/Assignments/Assignment 2/ASS2/tmp11/rl/collection/"+storageName;
+            String pathToStorage = "F:/College/3rd - 2nd term/IR/IR_Assignment2/collection/"+storageName;
             // Create a new FileWriter object for writing to the storage file
             Writer wr = new FileWriter(pathToStorage);
             // Write "end" to the file and then close it

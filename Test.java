@@ -8,7 +8,7 @@ public class Test {
     public static void main(String args[]) throws IOException {
         Index5 index = new Index5();
         //|**  change it to your collection directory
-        String files = "D:/fcai/Third Year/Second Semester/Information Retrieval/Assignments/Assignment 2/ASS2/tmp11/rl/collection/";
+        String files = "F:/College/3rd - 2nd term/IR/IR_Assignment2/collection/";
 
         java.io.File file = new java.io.File(files);
         //|** String[] 	list()
@@ -44,7 +44,7 @@ public class Test {
                 case "2":
                     searchWithBiWord(index, in);
                     break;
-                case "3":
+               case "3":
                     searchWithPositional(index, input);
                     break;
                 case "0":
